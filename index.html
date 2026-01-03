@@ -97,7 +97,7 @@
 
             scriptNode.onaudioprocess = (e) => {
                 const output = e.outputBuffer.getChannelData(0);
-                for (let i = 0; i < output.length; i++) {
+               for (let i = 0; i < data.length; i += 2) {
                     try {
                         let sample = 0;
                         if (floatCode.trim()) {
