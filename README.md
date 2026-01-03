@@ -1,1 +1,1 @@
-me and Gemini Ai create this player(there is no virus)
+me and Gemini Ai create this player(i swear there is no virus)
