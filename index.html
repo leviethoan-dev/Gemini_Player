@@ -34,6 +34,7 @@
         let audioCtx, scriptNode, isPlaying = false;
         const canvas = document.getElementById('visualizer');
         const ctx = canvas.getContext('2d');
+        const playBtn = document.getElementById('playBtn');
 
         playBtn.onclick = () => {
             if (isPlaying) {
@@ -55,9 +56,10 @@
                 const output = e.outputBuffer.getChannelData(0);
                 for (let i = 0; i < output.length; i++) {
                     try {
-                        if (floatCode) {
+                        const {sin, cos, tan, floor, ceil, abs, max, min, pow, sqrt, random, PI, exp, log} = Math;
+                        if (floatCode.trim()) {
                             output[i] = eval(floatCode);
-                        } else {
+                        } else if (byteCode.trim()) {
                             output[i] = ((eval(byteCode)) & 255) / 128 - 1;
                         }
                     } catch (err) { output[i] = 0; }
