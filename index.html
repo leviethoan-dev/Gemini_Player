@@ -3,81 +3,87 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gemini Player - Lite Edition</title>
+    <title>Gemini Player</title>
     <style>
-        body { background: #0a0a0a; color: white; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; padding: 20px; }
-        .container { background: #fff; color: #333; padding: 25px; border-radius: 15px; width: 90%; max-width: 800px; text-align: center; }
-        canvas { background: black; width: 100%; height: 200px; border-radius: 10px; margin-bottom: 20px; }
-        .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        textarea { padding: 10px; border: 2px solid #ddd; border-radius: 8px; height: 100px; font-family: monospace; }
-        .settings { margin-top: 20px; display: flex; align-items: center; justify-content: center; gap: 15px; }
-        .btn-play { background: #ff4e50; color: white; border: none; padding: 12px 30px; font-size: 16px; font-weight: bold; border-radius: 5px; cursor: pointer; }
-        .btn-play.playing { background: #2ecc71; }
+        body { background-color: #e0f7fa; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; font-family: Arial, sans-serif; }
+        .container { background-color: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); text-align: center; width: 80%; max-width: 600px; }
+        h1 { color: #00796b; margin-bottom: 20px; }
+        canvas { background-color: black; width: 100%; height: 150px; border-radius: 10px; margin-bottom: 20px; }
+        .controls { display: flex; gap: 10px; justify-content: center; margin-bottom: 20px; }
+        textarea { width: 45%; height: 80px; padding: 10px; border-radius: 8px; border: 1px solid #ccc; font-family: monospace; }
+        .play-btn { background-color: #ff5722; color: white; border: none; padding: 10px 30px; border-radius: 5px; cursor: pointer; font-size: 16px; font-weight: bold; }
+        .play-btn:hover { background-color: #e64a19; }
     </style>
 </head>
 <body>
+
     <div class="container">
-        <h1>💎 Gemini Player (Lite)</h1>
+        <h1>💎 Gemini Player</h1>
         <canvas id="visualizer"></canvas>
         <div class="controls">
-            <textarea id="bytebeatCode" placeholder="Bytebeat..."></textarea>
-            <textarea id="floatbeatCode" placeholder="Floatbeat..."></textarea>
+            <textarea id="bytebeatCode" placeholder="Nhập code Bytebeat..."></textarea>
+            <textarea id="floatbeatCode" placeholder="Nhập code Floatbeat..."></textarea>
         </div>
-        <div class="settings">
-            <input type="number" id="sampleRate" value="48000" style="width: 80px; padding: 5px;">
-            <button id="playBtn" class="btn-play">PLAY / STOP</button>
+        <div style="margin-bottom: 15px;">
+            Sample Rate: <input type="number" id="sampleRate" value="48000" style="width: 80px;">
         </div>
+        <button id="playBtn" class="play-btn">STOP & SAVE</button>
     </div>
 
     <script>
         let audioCtx, scriptNode, isPlaying = false;
-        const canvas = document.getElementById('visualizer'), ctx = canvas.getContext('2d');
-        const playBtn = document.getElementById('playBtn');
-
-        function resize() { canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight; }
-        window.onresize = resize; resize();
+        const canvas = document.getElementById('visualizer');
+        const ctx = canvas.getContext('2d');
 
         playBtn.onclick = () => {
-            if (isPlaying) { audioCtx.close(); isPlaying = false; playBtn.innerText = "PLAY"; playBtn.classList.remove('playing'); return; }
-            
+            if (isPlaying) {
+                audioCtx.close();
+                isPlaying = false;
+                playBtn.innerText = "PLAY";
+                return;
+            }
+
             const sr = parseInt(document.getElementById('sampleRate').value);
             const byteCode = document.getElementById('bytebeatCode').value;
             const floatCode = document.getElementById('floatbeatCode').value;
 
-            audioCtx = new AudioContext({ sampleRate: sr });
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: sr });
             scriptNode = audioCtx.createScriptProcessor(4096, 0, 1);
             let t = 0;
-            const mathProps = Object.getOwnPropertyNames(Math);
-            const mathValues = mathProps.map(p => Math[p]);
 
             scriptNode.onaudioprocess = (e) => {
                 const output = e.outputBuffer.getChannelData(0);
                 for (let i = 0; i < output.length; i++) {
                     try {
-                        if (floatCode.trim()) {
-                            output[i] = new Function('t', ...mathProps, `return ${floatCode}`)(t, ...mathValues);
+                        if (floatCode) {
+                            output[i] = eval(floatCode);
                         } else {
-                            output[i] = ((new Function('t', `return ${byteCode}`)(t)) & 255) / 128 - 1;
+                            output[i] = ((eval(byteCode)) & 255) / 128 - 1;
                         }
                     } catch (err) { output[i] = 0; }
                     t++;
                 }
                 draw(output);
             };
+
             scriptNode.connect(audioCtx.destination);
-            isPlaying = true; playBtn.innerText = "STOP"; playBtn.classList.add('playing');
+            isPlaying = true;
+            playBtn.innerText = "STOP";
         };
 
         function draw(data) {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = 'black';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
             ctx.strokeStyle = '#00f2ff';
             ctx.lineWidth = 2;
             ctx.beginPath();
-            const step = Math.ceil(data.length / canvas.width);
-            for (let i = 0; i < data.length; i += step) {
-                const x = (i / data.length) * canvas.width;
-                const y = (data[i] + 1) / 2 * canvas.height;
+            const sliceWidth = canvas.width / data.length;
+            let x = 0;
+            for (let i = 0; i < data.length; i++) {
+                const v = data[i];
+                const y = (v + 1) / 2 * canvas.height;
                 if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+                x += sliceWidth;
             }
             ctx.stroke();
         }
