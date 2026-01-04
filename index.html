@@ -5,77 +5,72 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gemini Player - leviethoan-dev</title>
     <style>
-        body {
-            background-color: #121212;
-            color: #00ff00;
-            font-family: 'Courier New', Courier, monospace;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin: 0;
-        }
-        h1 { text-shadow: 2px 2px #ff0000; }
-        textarea {
-            width: 80%;
-            height: 150px;
-            background: #1e1e1e;
-            color: #00ff00;
-            border: 2px solid #00ff00;
-            padding: 10px;
-            font-size: 1.1rem;
-        }
-        button {
-            margin-top: 20px;
-            padding: 10px 30px;
-            background: #00ff00;
-            color: #121212;
-            border: none;
-            cursor: pointer;
-            font-weight: bold;
-            font-size: 1.2rem;
-        }
-        button:hover { background: #ff00ff; color: white; }
-        .footer { margin-top: 30px; font-size: 0.8rem; color: #888; }
+        body { background: #000; color: #0f0; font-family: monospace; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+        textarea { width: 80%; height: 150px; background: #111; color: #0f0; border: 1px solid #0f0; padding: 10px; font-size: 16px; margin-bottom: 10px; }
+        .controls { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; }
+        input { background: #111; color: #0f0; border: 1px solid #0f0; padding: 5px; width: 80px; text-align: center; }
+        button { padding: 10px 20px; cursor: pointer; background: #0f0; color: #000; border: none; font-weight: bold; }
+        button:hover { background: #fff; }
+        h1 { color: #0f0; text-transform: uppercase; letter-spacing: 5px; margin-bottom: 5px; }
+        .footer { margin-top: 20px; font-size: 10px; color: #555; }
     </style>
 </head>
 <body>
 
-    <h1>GEMINI PLAYER 🚀</h1>
-    <p>Nhập code Bytebeat vào đây (ví dụ: t * (t>>8 & t>>11))</p>
-    
-    <textarea id="codeArea" placeholder="t * (t >> 8 | t >> 11) ..."></textarea>
-    
-    <button onclick="runProject()">CHẠY NHẠC - NGON LUÔN!</button>
+    <h1>Gemini Player 🚀</h1>
+    <textarea id="code" placeholder="Nhập Bytebeat...">t*(t>>8|t>>9)&t>>8</textarea>
 
-    <div class="footer">
-        Dự án bởi: leviethoan-dev | Bí mật: eval() & Rickroll
+    <div class="controls">
+        <label>Sample Rate (Hz): </label>
+        <input type="number" id="sr" value="8000">
+        <button onclick="start()">PLAY (NGON LUÔN)</button>
+        <button onclick="stop()">STOP</button>
     </div>
 
+    <div class="footer">Dự án của Hiếu (leviethoan-dev) | Bí mật: eval() & Rickroll</div>
+
     <script>
-        function runProject() {
-            const userCode = document.getElementById('codeArea').value;
-            
+        let audioCtx, scriptNode, t = 0;
+
+        function start() {
+            if (audioCtx) stop();
+
+            const userCode = document.getElementById('code').value;
+            const sampleRate = parseInt(document.getElementById('sr').value) || 8000;
+
             try {
-                // Kỹ thuật eval() đỉnh cao của Hiếu
+                // Khởi tạo AudioContext với sampleRate tùy chỉnh
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)({
+                    sampleRate: sampleRate
+                });
+                
+                // Kỹ thuật eval() thần thánh của Hiếu xử lý mượt mà
                 const formula = eval("(t) => " + userCode);
                 
-                // Giả lập chạy nhạc
-                console.log("%cNhạc đang chạy cực mượt! 🎶", "color: cyan");
-                alert("Đang xử lý nhạc... Ngon luôn!");
+                scriptNode = audioCtx.createScriptProcessor(4096, 1, 1);
                 
-                // Chỗ này Em sẽ gọi hàm AudioContext của Em để phát formula
-                // startAudio(formula);
+                scriptNode.onaudioprocess = function(e) {
+                    const output = e.outputBuffer.getChannelData(0);
+                    for (let i = 0; i < 4096; i++) {
+                        // Bytebeat 8-bit chuẩn
+                        output[i] = ((formula(t++) & 255) / 128) - 1;
+                    }
+                };
 
-            } catch (e) {
-                // Bẫy lỗi "Code sai là ngon luôn"
-                console.warn("%cCode sai là ngon luôn! 😎", "color: yellow; font-size: 20px; font-weight: bold;");
-                alert("Code sai là ngon luôn! Thưởng ngay một bài nhạc bất ngờ.");
-                
-                // Rickroll thẳng tiến!
+                scriptNode.connect(audioCtx.destination);
+                console.log("Đang chạy ở " + sampleRate + "Hz... Ngon luôn!");
+
+            } catch (err) {
+                // Bẫy Rickroll của Hiếu khi code có lỗi
+                console.error("Code sai là ngon luôn!");
                 window.open("https://www.youtube.com/watch?v=dQw4w9WgXcQ", "_blank");
             }
+        }
+
+        function stop() {
+            if (scriptNode) { scriptNode.disconnect(); scriptNode = null; }
+            if (audioCtx) { audioCtx.close(); audioCtx = null; }
+            t = 0;
         }
     </script>
 </body>
