@@ -2,76 +2,127 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gemini Player - leviethoan-dev</title>
+    <title>💎 Gemini Player - leviethoan-dev</title>
     <style>
-        body { background: #000; color: #0f0; font-family: monospace; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
-        textarea { width: 80%; height: 150px; background: #111; color: #0f0; border: 1px solid #0f0; padding: 10px; font-size: 16px; margin-bottom: 10px; }
-        .controls { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; }
-        input { background: #111; color: #0f0; border: 1px solid #0f0; padding: 5px; width: 80px; text-align: center; }
-        button { padding: 10px 20px; cursor: pointer; background: #0f0; color: #000; border: none; font-weight: bold; }
-        button:hover { background: #fff; }
-        h1 { color: #0f0; text-transform: uppercase; letter-spacing: 5px; margin-bottom: 5px; }
-        .footer { margin-top: 20px; font-size: 10px; color: #555; }
+        body { background-color: #E0FFFF; font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .container { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); text-align: center; width: 90%; max-width: 750px; border: 3px solid #20B2AA; }
+        h1 { color: #20B2AA; margin-bottom: 20px; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        canvas { background: #000; width: 100%; height: 180px; border-radius: 10px; margin-bottom: 15px; }
+        .engines { display: flex; gap: 15px; margin-bottom: 15px; }
+        .box { flex: 1; text-align: left; }
+        label { font-weight: bold; color: #008B8B; display: block; margin-bottom: 5px; }
+        textarea { width: 100%; height: 120px; padding: 10px; border: 2px solid #AFEEEE; border-radius: 10px; font-family: 'Courier New', monospace; box-sizing: border-box; resize: none; }
+        .controls { background: #f0fdfd; padding: 15px; border-radius: 12px; display: flex; justify-content: space-around; align-items: center; }
+        input { padding: 8px; border-radius: 6px; border: 1px solid #20B2AA; width: 100px; text-align: center; font-weight: bold; color: #20B2AA; }
+        button { background-color: #20B2AA; color: white; border: none; padding: 12px 40px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 16px; transition: 0.2s; }
+        button.stop { background-color: #FF4500; }
+        .footer { margin-top: 15px; font-size: 12px; color: #888; }
     </style>
 </head>
 <body>
-
-    <h1>Gemini Player 🚀</h1>
-    <textarea id="code" placeholder="Nhập Bytebeat...">t*(t>>8|t>>9)&t>>8</textarea>
-
-    <div class="controls">
-        <label>Sample Rate (Hz): </label>
-        <input type="number" id="sr" value="8000">
-        <button onclick="start()">PLAY (NGON LUÔN)</button>
-        <button onclick="stop()">STOP</button>
+    <div class="container">
+        <h1>💎 Gemini Player</h1>
+        <canvas id="cv"></canvas>
+        <div class="engines">
+            <div class="box">
+                <label>🔊 Bytebeat (0-255):</label>
+                <textarea id="bC" placeholder="Ví dụ: t*(t>>8|t>>9)&t>>8"></textarea>
+            </div>
+            <div class="box">
+                <label>🌊 Floatbeat (-1 to 1):</label>
+                <textarea id="fC" placeholder="Ví dụ: sin(t/50)"></textarea>
+            </div>
+        </div>
+        <div class="controls">
+            <div>
+                <span style="font-size: 14px; color: #555;">Sample Rate:</span>
+                <input type="number" id="sr" value="8000"> 
+            </div>
+            <button id="pB">PLAY</button>
+        </div>
+        <div class="footer">Dự án bởi Hiếu (leviethoan-dev) | Code sai là ngon luôn! 🚀</div>
     </div>
 
-    <div class="footer">Dự án của Hiếu (leviethoan-dev) | Bí mật: eval() & Rickroll</div>
+<script>
+    let a, s, t = 0, playing = false;
+    const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+    const srInput = document.getElementById('sr'), bInput = document.getElementById('bC'), fInput = document.getElementById('fC');
 
-    <script>
-        let audioCtx, scriptNode, t = 0;
+    // Khôi phục dữ liệu từ bộ nhớ localStorage
+    window.onload = () => {
+        bInput.value = localStorage.getItem('gm_byte') || "t*(t>>8|t>>9)&t>>8";
+        fInput.value = localStorage.getItem('gm_float') || "";
+        srInput.value = localStorage.getItem('gm_sr') || "8000";
+    };
 
-        function start() {
-            if (audioCtx) stop();
+    function saveData() {
+        localStorage.setItem('gm_byte', bInput.value);
+        localStorage.setItem('gm_float', fInput.value);
+        localStorage.setItem('gm_sr', srInput.value);
+    }
 
-            const userCode = document.getElementById('code').value;
-            const sampleRate = parseInt(document.getElementById('sr').value) || 8000;
+    function start() {
+        saveData();
+        const srValue = parseFloat(srInput.value) || 8000;
+        
+        try {
+            a = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: srValue });
+            s = a.createScriptProcessor(4096, 1, 1);
+            
+            // Khai báo các hàm toán học để dùng trong eval() / new Function
+            const {sin, cos, tan, floor, abs, random, PI, min, max, pow, sqrt} = Math;
+            const bVal = bInput.value.trim();
+            const fVal = fInput.value.trim();
+            
+            let fB, fF;
+            // Kỹ thuật eval/Function đỉnh cao của Hiếu để nhạc không lag
+            if (bVal) fB = new Function('t', 'sin', 'cos', 'tan', 'floor', 'abs', 'random', 'PI', 'min', 'max', 'pow', 'sqrt', `return ${bVal};`);
+            if (fVal) fF = new Function('t', 'sin', 'cos', 'tan', 'floor', 'abs', 'random', 'PI', 'min', 'max', 'pow', 'sqrt', `return ${fVal};`);
 
-            try {
-                // Khởi tạo AudioContext với sampleRate tùy chỉnh
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)({
-                    sampleRate: sampleRate
-                });
-                
-                // Kỹ thuật eval() thần thánh của Hiếu xử lý mượt mà
-                const formula = eval("(t) => " + userCode);
-                
-                scriptNode = audioCtx.createScriptProcessor(4096, 1, 1);
-                
-                scriptNode.onaudioprocess = function(e) {
-                    const output = e.outputBuffer.getChannelData(0);
-                    for (let i = 0; i < 4096; i++) {
-                        // Bytebeat 8-bit chuẩn
-                        output[i] = ((formula(t++) & 255) / 128) - 1;
-                    }
-                };
-
-                scriptNode.connect(audioCtx.destination);
-                console.log("Đang chạy ở " + sampleRate + "Hz... Ngon luôn!");
-
-            } catch (err) {
-                // Bẫy Rickroll của Hiếu khi code có lỗi
-                console.error("Code sai là ngon luôn!");
-                window.open("https://www.youtube.com/watch?v=dQw4w9WgXcQ", "_blank");
-            }
+            s.onaudioprocess = (e) => {
+                if (!playing) return;
+                const out = e.outputBuffer.getChannelData(0);
+                for (let i = 0; i < out.length; i++) {
+                    let vB = bVal ? (((fB(t,sin,cos,tan,floor,abs,random,PI,min,max,pow,sqrt)|0)&255)/127.5)-1 : 0;
+                    let vF = fVal ? fF(t,sin,cos,tan,floor,abs,random,PI,min,max,pow,sqrt) : 0;
+                    
+                    if (bVal && fVal) out[i] = (vB + vF) / 2;
+                    else out[i] = bVal ? vB : vF;
+                    t++;
+                }
+                // Vẽ Visualizer sóng nhạc
+                draw(out);
+            };
+            s.connect(a.destination);
+        } catch(e) { 
+            // Bí mật Rickroll khi code sai
+            alert("Code sai là ngon luôn! Thưởng ngay bài Rickroll."); 
+            window.open("https://www.youtube.com/watch?v=dQw4w9WgXcQ", "_blank");
+            location.reload();
         }
+    }
 
-        function stop() {
-            if (scriptNode) { scriptNode.disconnect(); scriptNode = null; }
-            if (audioCtx) { audioCtx.close(); audioCtx = null; }
-            t = 0;
+    function draw(out) {
+        ctx.fillStyle = 'black'; ctx.fillRect(0,0,cv.width,cv.height);
+        ctx.strokeStyle = '#00FFFF'; ctx.lineWidth = 2; ctx.beginPath();
+        for(let j=0; j<out.length; j+=8) {
+            let x = (j/out.length)*cv.width, y = (out[j]*0.5+0.5)*cv.height;
+            if(j==0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
         }
-    </script>
+        ctx.stroke();
+    }
+
+    document.getElementById('pB').onclick = () => {
+        if (playing) {
+            saveData();
+            location.reload(); 
+        } else {
+            playing = true;
+            document.getElementById('pB').innerText = "STOP & SAVE";
+            document.getElementById('pB').classList.add('stop');
+            start();
+        }
+    };
+</script>
 </body>
 </html>
