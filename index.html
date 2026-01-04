@@ -3,91 +3,79 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gemini Player</title>
+    <title>Gemini Player - leviethoan-dev</title>
     <style>
-        body { background-color: #e0f7fa; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; font-family: Arial, sans-serif; }
-        .container { background-color: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); text-align: center; width: 80%; max-width: 600px; }
-        h1 { color: #00796b; margin-bottom: 20px; }
-        canvas { background-color: black; width: 100%; height: 150px; border-radius: 10px; margin-bottom: 20px; }
-        .controls { display: flex; gap: 10px; justify-content: center; margin-bottom: 20px; }
-        textarea { width: 45%; height: 80px; padding: 10px; border-radius: 8px; border: 1px solid #ccc; font-family: monospace; }
-        .play-btn { background-color: #ff5722; color: white; border: none; padding: 10px 30px; border-radius: 5px; cursor: pointer; font-size: 16px; font-weight: bold; }
-        .play-btn:hover { background-color: #e64a19; }
+        body {
+            background-color: #121212;
+            color: #00ff00;
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+        h1 { text-shadow: 2px 2px #ff0000; }
+        textarea {
+            width: 80%;
+            height: 150px;
+            background: #1e1e1e;
+            color: #00ff00;
+            border: 2px solid #00ff00;
+            padding: 10px;
+            font-size: 1.1rem;
+        }
+        button {
+            margin-top: 20px;
+            padding: 10px 30px;
+            background: #00ff00;
+            color: #121212;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+        button:hover { background: #ff00ff; color: white; }
+        .footer { margin-top: 30px; font-size: 0.8rem; color: #888; }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <h1>💎 Gemini Player</h1>
-        <canvas id="visualizer"></canvas>
-        <div class="controls">
-            <textarea id="bytebeatCode" placeholder="Nhập code Bytebeat..."></textarea>
-            <textarea id="floatbeatCode" placeholder="Nhập code Floatbeat..."></textarea>
-        </div>
-        <div style="margin-bottom: 15px;">
-            Sample Rate: <input type="number" id="sampleRate" value="48000" style="width: 80px;">
-        </div>
-        <button id="playBtn" class="play-btn">STOP & SAVE</button>
+    <h1>GEMINI PLAYER 🚀</h1>
+    <p>Nhập code Bytebeat vào đây (ví dụ: t * (t>>8 & t>>11))</p>
+    
+    <textarea id="codeArea" placeholder="t * (t >> 8 | t >> 11) ..."></textarea>
+    
+    <button onclick="runProject()">CHẠY NHẠC - NGON LUÔN!</button>
+
+    <div class="footer">
+        Dự án bởi: leviethoan-dev | Bí mật: eval() & Rickroll
     </div>
 
     <script>
-        let audioCtx, scriptNode, isPlaying = false;
-        const canvas = document.getElementById('visualizer');
-        const ctx = canvas.getContext('2d');
-        const playBtn = document.getElementById('playBtn');
+        function runProject() {
+            const userCode = document.getElementById('codeArea').value;
+            
+            try {
+                // Kỹ thuật eval() đỉnh cao của Hiếu
+                const formula = eval("(t) => " + userCode);
+                
+                // Giả lập chạy nhạc
+                console.log("%cNhạc đang chạy cực mượt! 🎶", "color: cyan");
+                alert("Đang xử lý nhạc... Ngon luôn!");
+                
+                // Chỗ này Em sẽ gọi hàm AudioContext của Em để phát formula
+                // startAudio(formula);
 
-        playBtn.onclick = () => {
-            if (isPlaying) {
-                audioCtx.close();
-                isPlaying = false;
-                playBtn.innerText = "PLAY";
-                return;
+            } catch (e) {
+                // Bẫy lỗi "Code sai là ngon luôn"
+                console.warn("%cCode sai là ngon luôn! 😎", "color: yellow; font-size: 20px; font-weight: bold;");
+                alert("Code sai là ngon luôn! Thưởng ngay một bài nhạc bất ngờ.");
+                
+                // Rickroll thẳng tiến!
+                window.open("https://www.youtube.com/watch?v=dQw4w9WgXcQ", "_blank");
             }
-
-            const sr = parseInt(document.getElementById('sampleRate').value);
-            const byteCode = document.getElementById('bytebeatCode').value;
-            const floatCode = document.getElementById('floatbeatCode').value;
-
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: sr });
-            scriptNode = audioCtx.createScriptProcessor(4096, 0, 1);
-            let t = 0;
-
-            scriptNode.onaudioprocess = (e) => {
-                const output = e.outputBuffer.getChannelData(0);
-                for (let i = 0; i < output.length; i++) {
-                    try {
-                        const {sin, cos, tan, floor, ceil, abs, max, min, pow, sqrt, random, PI, exp, log} = Math;
-                        if (floatCode.trim()) {
-                            output[i] = eval(floatCode);
-                        } else if (byteCode.trim()) {
-                            output[i] = ((eval(byteCode)) & 255) / 128 - 1;
-                        }
-                    } catch (err) { output[i] = 0; }
-                    t++;
-                }
-                draw(output);
-            };
-
-            scriptNode.connect(audioCtx.destination);
-            isPlaying = true;
-            playBtn.innerText = "STOP";
-        };
-
-        function draw(data) {
-            ctx.fillStyle = 'black';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.strokeStyle = '#00f2ff';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            const sliceWidth = canvas.width / data.length;
-            let x = 0;
-            for (let i = 0; i < data.length; i++) {
-                const v = data[i];
-                const y = (v + 1) / 2 * canvas.height;
-                if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-                x += sliceWidth;
-            }
-            ctx.stroke();
         }
     </script>
 </body>
